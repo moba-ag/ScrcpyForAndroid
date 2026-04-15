@@ -241,10 +241,10 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
         final View decorView = getWindow().getDecorView();
         decorView.setSystemUiVisibility(View.VISIBLE);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        landscape = false;  // 将模式重新置为 竖屏，模式不正确将导致连接黑屏
+        landscape = false;  // Den Modus wieder auf Hochformat zurücksetzen; ein falscher Modus führt zu einem schwarzen Bildschirm
         setContentView(R.layout.activity_main);
         final Button startButton = findViewById(R.id.button_start);
-        // final Button floatButton = findViewById(R.id.button_start_float);
+//        final Button floatButton = findViewById(R.id.button_start_float);
 
         sendCommands = new SendCommands();
 
@@ -304,7 +304,7 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
 //    private void showDisplayWindow() {
 //        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
 //            if (!Settings.canDrawOverlays(this)) {
-//                //启动Activity让用户授权
+//                // Eine Aktivität starten, damit der Benutzer die Berechtigung erteilt
 //                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
 //                startActivity(intent);
 //                return;

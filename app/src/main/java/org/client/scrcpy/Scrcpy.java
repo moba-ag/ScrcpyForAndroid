@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Scrcpy extends Service {
 
     public static final String LOCAL_IP = "127.0.0.1";
-    // 本地画面转发占用的端口
+    // Von der lokalen Bildschirmweiterleitung belegte Ports
     public static final int LOCAL_FORWART_PORT = 7008;
 
     public static final int DEFAULT_ADB_PORT = 5555;
@@ -124,7 +124,7 @@ public class Scrcpy extends Service {
         }
         updateAvailable.set(true);
 
-        try {  // 请求关键帧, 避免花屏
+        try {  // Keyframes anfordern, um Bildstörungen zu vermeiden
             requestNewKeyFrame();
         } catch (IOException e) {
             e.printStackTrace();
@@ -149,7 +149,7 @@ public class Scrcpy extends Service {
         float realH;
         float realW;
 
-        if (landscape) {  // 横屏的话，宽高相反
+        if (landscape) {  // Im Querformat sind Breite und Höhe vertauscht
             remoteW = Math.max(remote_dev_resolution[0], remote_dev_resolution[1]);
             remoteH = Math.min(remote_dev_resolution[0], remote_dev_resolution[1]);
 
@@ -168,21 +168,21 @@ public class Scrcpy extends Service {
         // Log.e("Scrcpy", "pointer id: " + pointerId + " , action: " + touch_event.getAction() + " ,point count: " + pointCount + " x: " + touch_event.getX() + " y: " + touch_event.getY());
 
         switch (touch_event.getAction()) {
-            case MotionEvent.ACTION_MOVE: // 所有手指移动
-                // 遍历所有触摸点，使用 pointerId 和 pointerIndex 来获取所有触摸点的信息
+            case MotionEvent.ACTION_MOVE: // Alle Finger bewegen
+                // Durchlaufe alle Berührungspunkte und rufe mithilfe von pointerId und pointerIndex die Informationen zu allen Berührungspunkten ab
                 for (int i = 0; i < touch_event.getPointerCount(); i++) {
                     int currentPointerId = touch_event.getPointerId(i);
                     int x = (int) touch_event.getX(i);
                     int y = (int) touch_event.getY(i);
-                    // 处理每一个触摸点的x, y坐标
+                    // Verarbeitung der x- und y-Koordinaten jedes Berührungspunkts
                     // Log.e("Scrcpy", "触摸移动，index : " + i + " ,x : " + x + " , y: " + y + " ,currentPointerId: " + currentPointerId);
                     sendTouchEvent(touch_event.getAction(), touch_event.getButtonState(), (int) (x * realW / displayW), (int) (y * realH / displayH), currentPointerId);
                 }
                 break;
-            case MotionEvent.ACTION_POINTER_UP: // 中间手指抬起
-            case MotionEvent.ACTION_UP: // 最后一个手指抬起
-            case MotionEvent.ACTION_DOWN: // 第一个手指按下
-            case MotionEvent.ACTION_POINTER_DOWN: // 中间的手指按下
+            case MotionEvent.ACTION_POINTER_UP: // Den Mittelfinger heben
+            case MotionEvent.ACTION_UP: // Der letzte Finger hebt sich
+            case MotionEvent.ACTION_DOWN: // Der erste Finger drückt
+            case MotionEvent.ACTION_POINTER_DOWN: // Den Mittelfinger drücken
             default:
                 sendTouchEvent(touch_event.getAction(), touch_event.getButtonState(), (int) (touch_event.getX() * realW / displayW), (int) (touch_event.getY() * realH / displayH), pointerId);
                 break;
@@ -251,18 +251,19 @@ public class Scrcpy extends Service {
                 Log.e("Scrcpy", "Connecting to " + LOCAL_IP);
                 // socket = new Socket(ip, port);
                 socket = new Socket();
-                socket.connect(new InetSocketAddress(ip, port), 5000); //设置超时5000毫秒
+                socket.connect(new InetSocketAddress(ip, port), 5000); // Zeitlimit auf 5000 Millisekunden setzen
                 if (!LetServceRunning.get()) {
                     return;
                 }
 
                 Log.e("Scrcpy", "Connecting to " + LOCAL_IP + " success");
 
-                // 能够正常进行连接，说明可能建立了 tcp 连接，需要等待数据
-                // 一次等待时间为 2s ，最多等待五次，也就是 10秒
-                if (firstConnect) {  // 此处有 while 循环，不能一直设置为10
+                // Wenn die Verbindung normal hergestellt werden kann, bedeutet dies, dass möglicherweise eine TCP-Verbindung besteht und auf Daten gewartet werden muss.
+                // Die Wartezeit beträgt jeweils 2 Sekunden, es wird maximal fünfmal gewartet, also insgesamt 10 Sekunden.
+                if (firstConnect) {  // Hier gibt es eine while-Schleife, daher kann der Wert nicht dauerhaft auf 10 gesetzt werden
                     firstConnect = false;
-                    // waitResolutionCount 为 10，等待100ms 也就是共计一秒钟，设置attempts 为 5，也就是 5秒后则退出
+                    // Wenn waitResolutionCount auf 10 gesetzt ist, wird 100 ms gewartet, was insgesamt einer Sekunde entspricht;
+                    // wenn attempts auf 5 gesetzt ist, wird der Vorgang nach 5 Sekunden abgebrochen.
                     attempts = 5;
                 }
                 dataInputStream = new DataInputStream(socket.getInputStream());
@@ -346,7 +347,7 @@ public class Scrcpy extends Service {
                 }
                 socketInputStream = null;
                 socketOutputStream = null;
-                // 清除事件队列
+                // Ereigniswarteschlange löschen
                 event.clear();
 
             }
@@ -371,7 +372,7 @@ public class Scrcpy extends Service {
         VideoPacket.StreamSettings streamSettings = null;
         byte[] packetSize = new byte[4];
 
-        // 由于网络传输存在延迟，丢弃数据包计数
+        // Anzahl der verlorenen Datenpakete aufgrund von Verzögerungen bei der Netzwerkübertragung
         long lastVideoOffset = 0;
         long lastAudioOffset = 0;
 
@@ -402,7 +403,7 @@ public class Scrcpy extends Service {
                     waitEvent = false;
                     dataInputStream.readFully(packetSize, 0, 4);
                     int size = ByteUtils.bytesToInt(packetSize);
-                    if (size > 4 * 1024 * 1024) {  // 如果单个数据包大于 4m ，直接断开连接
+                    if (size > 4 * 1024 * 1024) {  // Wenn ein einzelnes Datenpaket größer als 4 MB ist, wird die Verbindung sofort getrennt
                         if (serviceCallbacks != null) {
                             serviceCallbacks.errorDisconnect();
                         }
@@ -444,7 +445,7 @@ public class Scrcpy extends Service {
                             Log.e("Scrcpy", "END ... ");
                         } else {
                             // Log.e("Scrcpy", "videoPacket presentationTimeStamp ... " + videoPacket.presentationTimeStamp);
-                            // 帧在 100 ms 以内
+                            // Bildrate unter 100 ms
                             if (lastVideoOffset == 0) {
                                 lastVideoOffset = System.currentTimeMillis() - (videoPacket.presentationTimeStamp / 1000);
                             }
