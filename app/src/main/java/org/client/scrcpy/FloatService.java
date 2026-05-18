@@ -92,8 +92,9 @@ public class FloatService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        scrcpyHost.destroy();
-        System.exit(0);
+        if (scrcpyHost != null) {
+            scrcpyHost.destroy();
+        }
     }
 
     private void setupDisplay() {

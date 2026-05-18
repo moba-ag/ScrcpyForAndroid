@@ -1,5 +1,7 @@
 package org.client.scrcpy;
 
+import static java.lang.String.valueOf;
+
 import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
@@ -250,7 +252,7 @@ public class Scrcpy extends Service {
         int attempts = 50;
         while (attempts > 0 && LetServceRunning.get()) {
             try {
-                Log.e("Scrcpy", "Connecting to " + LOCAL_IP);
+                Log.e("Scrcpy", "Connecting to " + ip + ":" + String.valueOf(port));
                 // socket = new Socket(ip, port);
                 socket = new Socket();
                 socket.connect(new InetSocketAddress(ip, port), 5000); // Zeitlimit auf 5000 Millisekunden setzen
@@ -258,7 +260,7 @@ public class Scrcpy extends Service {
                     return;
                 }
 
-                Log.e("Scrcpy", "Connecting to " + LOCAL_IP + " success");
+                Log.e("Scrcpy", "Connecting to " + ip + " success");
 
                 // Wenn die Verbindung normal hergestellt werden kann, bedeutet dies, dass möglicherweise eine TCP-Verbindung besteht und auf Daten gewartet werden muss.
                 // Die Wartezeit beträgt jeweils 2 Sekunden, es wird maximal fünfmal gewartet, also insgesamt 10 Sekunden.

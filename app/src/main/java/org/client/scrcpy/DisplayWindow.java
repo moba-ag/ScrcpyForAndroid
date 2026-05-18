@@ -57,7 +57,9 @@ public class DisplayWindow extends FrameLayout {
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
                 if (motionEvent.getActionMasked() == MotionEvent.ACTION_DOWN){
-                    closeListener.onClick(view);
+                    if (closeListener != null) {
+                        closeListener.onClick(view);
+                    }
                 }
                 return false;
             }
@@ -76,18 +78,55 @@ public class DisplayWindow extends FrameLayout {
                     case MotionEvent.ACTION_MOVE:
                         float disX = motionEvent.getRawX()-oldX;
                         float disY = motionEvent.getRawY()-oldY;
-                        moveCallback.onMove(disX,disY);
+                        if (moveCallback != null) {
+                            moveCallback.onMove(disX, disY);
+                        }
                         oldX = motionEvent.getRawX();
                         oldY = motionEvent.getRawY();
-                        break;
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_CANCEL:
-
                         break;
                 }
                 return true;
             }
         });
+
+        findViewById(R.id.iv_resize).setOnTouchListener(new OnTouchListener() {
+            private float startX, startY;
+            private int startWidth, startHeight;
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        startX = event.getRawX();
+                        startY = event.getRawY();
+                        startWidth = container.getWidth();
+                        startHeight = container.getHeight();
+                        return true;
+                    case MotionEvent.ACTION_MOVE:
+                        float deltaX = event.getRawX() - startX;
+                        int newWidth = (int) (startWidth + deltaX);
+                        if (newWidth < 200) newWidth = 200;
+
+                        // Maintain aspect ratio based on width
+                        float ratio = (float) startWidth / startHeight;
+                        int newHeight = (int) (newWidth / ratio);
+
+                        ViewGroup.LayoutParams lp = container.getLayoutParams();
+                        lp.width = newWidth;
+                        lp.height = newHeight;
+                        container.setLayoutParams(lp);
+
+                        ViewGroup.LayoutParams lp2 = header.getLayoutParams();
+                        lp2.width = newWidth;
+                        header.setLayoutParams(lp2);
+
+                        requestLayout();
+                        return true;
+                }
+                return false;
+            }
+        });
+
         findViewById(R.id.iv_mini).setOnTouchListener(new OnTouchListener() {
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
@@ -158,33 +197,45 @@ public class DisplayWindow extends FrameLayout {
         return surfaceView;
     }
 
-    public void setRemote(int w,int h){
+    public void setRemote(int w, int h) {
+        if (w <= 0 || h <= 0) return;
+
         DisplayMetrics metrics = new DisplayMetrics();
         WindowManager windowManager = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
         final Display display = windowManager.getDefaultDisplay();
         display.getRealMetrics(metrics);
-        float this_dev_height = metrics.heightPixels;
-        float this_dev_width = Math.min(metrics.heightPixels,metrics.widthPixels);
+
+        final float maxAllowedHeight = metrics.heightPixels * 0.8f;
+        final float maxAllowedWidth = metrics.widthPixels * 0.8f;
 
         post(new Runnable() {
             @Override
             public void run() {
-                //根据比例设置高度
+                float remote_aspect_ratio = (float) w / h;
+                int targetWidth, targetHeight;
+
+                // Try to scale by height first
+                targetHeight = (int) (maxAllowedHeight - actionbar.getMeasuredHeight() - header.getMeasuredHeight());
+                targetWidth = (int) (targetHeight * remote_aspect_ratio);
+
+                // If it's too wide, scale by width instead
+                if (targetWidth > maxAllowedWidth) {
+                    targetWidth = (int) maxAllowedWidth;
+                    targetHeight = (int) (targetWidth / remote_aspect_ratio);
+                }
+
                 ViewGroup.LayoutParams lp = container.getLayoutParams();
-                float rate = (float)w/h;
-                Log.d(TAG, "setRemote: "+w+","+h+" %->"+rate);
-                //高度屏幕的80%，然后宽度按比例
-                lp.height = (int)(this_dev_height * 0.95 - actionbar.getMeasuredHeight() - header.getMeasuredHeight()-50);
-                lp.width = (int) (lp.height * rate);
+                lp.width = targetWidth;
+                lp.height = targetHeight;
                 container.setLayoutParams(lp);
 
                 ViewGroup.LayoutParams lp2 = header.getLayoutParams();
-                lp2.width = lp.width;
+                lp2.width = targetWidth;
                 header.setLayoutParams(lp2);
+
                 requestLayout();
             }
         });
-
     }
 
     public void hideHintTip(){

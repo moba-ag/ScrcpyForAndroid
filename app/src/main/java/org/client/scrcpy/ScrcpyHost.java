@@ -59,7 +59,8 @@ public class ScrcpyHost implements Scrcpy.ServiceCallbacks {
             scrcpy.setServiceCallbacks(ScrcpyHost.this);
             serviceBound = true;
             if (first_time) {
-                scrcpy.start(surface, serverAdr, screenHeight, screenWidth, 50);
+                // Connect to the local end of the ADB tunnel
+                scrcpy.start(surface, Scrcpy.LOCAL_IP + ":" + Scrcpy.LOCAL_FORWART_PORT, screenHeight, screenWidth, 50);
                 int count = 100;
                 while (count != 0 && !scrcpy.check_socket_connection()) {
                     count--;
@@ -79,11 +80,13 @@ public class ScrcpyHost implements Scrcpy.ServiceCallbacks {
                     Toast.makeText(context, "Connection Timed out 1", Toast.LENGTH_SHORT).show();
                 } else {
                     int[] rem_res = scrcpy.get_remote_device_resolution();
-                    remote_device_height = rem_res[1];
                     remote_device_width = rem_res[0];
+                    remote_device_height = rem_res[1];
                     first_time = false;
-                    Log.d("fuck", "onServiceConnected: " + remote_device_height + "|" + remote_device_width);
-                    connectCallBack.onConnect(Math.min(remote_device_width, remote_device_height), Math.max(remote_device_width, remote_device_height));
+                    Log.d("ScrcpyHost", "onServiceConnected: " + remote_device_width + "x" + remote_device_height);
+                    if (connectCallBack != null) {
+                        connectCallBack.onConnect(remote_device_width, remote_device_height);
+                    }
                 }
             } else {
                 scrcpy.setParms(surface, screenWidth, screenHeight);
@@ -208,7 +211,8 @@ public class ScrcpyHost implements Scrcpy.ServiceCallbacks {
     }
 
     public boolean touch(MotionEvent motionEvent, int surfaceW, int surfaceH) {
-        return scrcpy.touchevent(motionEvent, false, surfaceW, surfaceH);
+        boolean isLandscape = surfaceW > surfaceH;
+        return scrcpy.touchevent(motionEvent, isLandscape, surfaceW, surfaceH);
     }
 
     public void keyEvent(int keyCode) {
@@ -218,13 +222,13 @@ public class ScrcpyHost implements Scrcpy.ServiceCallbacks {
 
     @Override
     public void loadNewRotation() {
-        if (first_time) {
-            int[] rem_res = scrcpy.get_remote_device_resolution();
-            remote_device_height = rem_res[1];
-            remote_device_width = rem_res[0];
-            first_time = false;
+        int[] rem_res = scrcpy.get_remote_device_resolution();
+        remote_device_width = rem_res[0];
+        remote_device_height = rem_res[1];
+        Log.d("ScrcpyHost", "loadNewRotation: " + remote_device_width + "x" + remote_device_height);
+        if (connectCallBack != null) {
+            connectCallBack.onConnect(remote_device_width, remote_device_height);
         }
-        //TODO
     }
 
     @Override

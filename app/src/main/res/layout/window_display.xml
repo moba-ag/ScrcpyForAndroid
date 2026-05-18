@@ -59,8 +59,17 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:text="链接中...30秒没反应估计就挂了\n\n注意手机提示配对的弹窗"
+            android:text="Connecting... If there's no response within 30 seconds, it's probably down\n\nKeep an eye out for the pairing prompt on your phone"
             android:textColor="@color/white" />
+
+        <ImageView
+            android:id="@+id/iv_resize"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="bottom|end"
+            android:padding="8dp"
+            android:src="@android:drawable/ic_menu_crop"
+            android:alpha="0.5" />
     </FrameLayout>
 
     <LinearLayout

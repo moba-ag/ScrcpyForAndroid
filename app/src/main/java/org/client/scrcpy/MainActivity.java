@@ -19,6 +19,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -249,7 +250,7 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
         landscape = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
         setContentView(R.layout.activity_main);
         final Button startButton = findViewById(R.id.button_start);
-//        final Button floatButton = findViewById(R.id.button_start_float);
+        final Button floatButton = findViewById(R.id.button_start_float);
 
         sendCommands = new SendCommands();
 
@@ -259,10 +260,10 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
             connectScrcpyServer(serverAdr);
         });
 
-//        floatButton.setOnClickListener(v -> {
-//            getAttributes();
-//            showDisplayWindow();
-//        });
+        floatButton.setOnClickListener(v -> {
+            getAttributes();
+            showDisplayWindow();
+        });
         get_saved_preferences();
 
         EditText editText = findViewById(R.id.editText_server_host);
@@ -305,25 +306,23 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
         listPopupWindow.show();
     }
 
-
-//    private void showDisplayWindow() {
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-//            if (!Settings.canDrawOverlays(this)) {
-//                // Eine Aktivität starten, damit der Benutzer die Berechtigung erteilt
-//                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
-//                startActivity(intent);
-//                return;
-//            }
-//        }
-//        Intent it = new Intent(this, FloatService.class);
-//        it.putExtra("ip", serverAdr);
-//        it.putExtra("w", screenWidth);
-//        it.putExtra("h", screenHeight);
-//        it.putExtra("b", videoBitrate);
-//        startService(it);
-//        finish();
-//    }
-
+    private void showDisplayWindow() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!Settings.canDrawOverlays(this)) {
+                // Eine Aktivität starten, damit der Benutzer die Berechtigung erteilt
+                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+                startActivity(intent);
+                return;
+            }
+        }
+        Intent it = new Intent(this, FloatService.class);
+        it.putExtra("ip", serverAdr);
+        it.putExtra("w", screenWidth);
+        it.putExtra("h", screenHeight);
+        it.putExtra("b", videoBitrate);
+        startService(it);
+        finish();
+    }
 
     public void get_saved_preferences() {
         final EditText editTextServerHost = findViewById(R.id.editText_server_host);
@@ -379,10 +378,17 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
         // Correction for navigation bar if active
         if (PreUtils.get(context, Constant.CONTROL_NAV, false) &&
                 !PreUtils.get(context, Constant.CONTROL_NO, false)) {
+            View navBar = findViewById(R.id.nav_button_bar);
+            float navSize = 0;
+            if (navBar != null && navBar.getVisibility() == View.VISIBLE) {
+                navSize = landscape ? navBar.getWidth() : navBar.getHeight();
+            }
+            if (navSize <= 0) navSize = 96; // Fallback
+
             if (landscape) {
-                this_dev_width = this_dev_width - 96;
+                this_dev_width = this_dev_width - navSize;
             } else {
-                this_dev_height = this_dev_height - 96;
+                this_dev_height = this_dev_height - navSize;
             }
         }
 
@@ -555,6 +561,12 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
     @SuppressLint("ClickableViewAccessibility")
     private void start_screen_copy_magic() {
         setContentView(R.layout.surface);
+
+        // Use the cutout area (Notch) to get truly full screen
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        }
+
         // Fix orientation when transmission starts
         if (landscape) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
