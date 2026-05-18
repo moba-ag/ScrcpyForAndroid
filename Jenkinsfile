@@ -31,7 +31,7 @@ pipeline
                 }
                 script
                 {
-                    def jFile = readJSON file: 'service/build/outputs/apk/release/output-metadata.json'
+                    def jFile = readJSON file: 'app/build/outputs/apk/scrcpy/release/output-metadata.json'
                     writeFile file: 'version.txt', text: jFile.elements[0].versionName
                 }
             }
@@ -58,8 +58,8 @@ pipeline
         {
             steps
             {
-                bat 'copy service\\build\\outputs\\apk\\release\\org.client.scrcpy.apk org.client.scrcpy.apk'
-                bat 'copy service\\build\\reports\\sbom.json sbom.json'
+                bat 'copy app\\build\\outputs\\apk\\scrcpy\\release\\org.client.scrcpy.apk org.client.scrcpy.apk'
+/*                bat 'copy service\\build\\reports\\sbom.json sbom.json' */
                 archiveArtifacts artifacts: 'org.client.scrcpy.apk, version.txt, changelog/org.client.scrcpy.changelog.pdf', followSymlinks: false
                 mobaReleaseManagement deploymentDescriptor: 'deployment-descriptor.xml', versionInfoFile: "version.txt"
             }
