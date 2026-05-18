@@ -1,0 +1,23 @@
+<deployment project="Android SCRCPY">
+	<maintainer>aheberer</maintainer>
+	
+	<artifacts>
+		<artifact id="org.client.scrcpy" file="org.client.scrcpy.apk" changelog="changelog/org.client.scrcpy.changelog.pdf"/>
+	</artifacts>
+	
+	<release-candidate>
+		<notifications>
+			<to>aheberer@moba.de</to>
+		</notifications>
+	</release-candidate>
+	<preliminary>
+		<notifications>
+			<to>aheberer@moba.de</to>
+		</notifications>
+	</preliminary>
+	<release>
+		<notifications>
+			<to>aheberer@moba.de</to>
+		</notifications>
+	</release>	
+</deployment>

@@ -13,7 +13,12 @@ android {
         versionCode 12
         versionName "1.4.1"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-        setProperty("archivesBaseName", "scrcpy")
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "org.client.scrcpy.apk"
+        }
     }
     signingConfigs {
         release {
