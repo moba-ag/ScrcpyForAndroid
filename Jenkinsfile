@@ -24,7 +24,7 @@ pipeline
             steps 
             {
                 deleteDir()
-                checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], gitTool: 'Default', userRemoteConfigs: [[url: 'git@github.com:moba-ag/ScrcpyForAndroid.git']]])
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']], extensions: [], gitTool: 'Default', userRemoteConfigs: [[url: 'git@github.com:moba-ag/ScrcpyForAndroid.git']]])
             }
         }
         stage('Compile')
