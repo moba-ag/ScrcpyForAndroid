@@ -59,18 +59,18 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, SensorEventListener {
 
-    // Soll direkt eine Verbindung zum Remote-Server hergestellt werden?
+    // Should a direct connection to the remote server be established?
     public final static String START_REMOTE = "start_remote_headless";
 
-    private boolean headlessMode = false;  // Befindet sich das Programm im kopflosen Modus, sodass keine Bedienoptionen angezeigt werden?
+    private boolean headlessMode = false;  // Is the program in headless mode, so no control options are displayed?
     private int screenWidth;
     private int screenHeight;
     private boolean landscape = false;
     private boolean first_time = true;
     private boolean result_of_Rotation = false;
     private boolean serviceBound = false;
-    // Wenn „pause“ in den Hintergrund wechselt, wird nach einer Unterbrechung automatisch eine neue Verbindung hergestellt
-    // In diesem Zustand ist das Speichern und Wiederherstellen deaktiviert
+    // If "pause" goes to the background, a new connection is automatically established after an interruption
+    // In this state, saving and restoring are disabled
     private boolean resumeScrcpy = false;
     SensorManager sensorManager;
     private SendCommands sendCommands;
@@ -141,13 +141,13 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
         showMainView(false);
     }
 
-    // userDisconnect ：Soll die Verbindung für den Benutzer manuell getrennt werden?
+    // userDisconnect: Should the connection be manually disconnected for the user?
     private void showMainView(boolean userDisconnect) {
         if (scrcpy != null) {
             scrcpy.StopService();
         }
         try {
-            // Dies könnte zu einer doppelten Aufhebung der Verknüpfung führen, daher wird die Ausnahme abgefangen.
+            // This could lead to a double unbinding, so the exception is caught.
             unbindService(serviceConnection);
         } catch (Exception e) {
             e.printStackTrace();
@@ -164,7 +164,7 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
         if (scrcpy != null) {
             scrcpy = null;
         }
-        // Beim Beenden der Verbindung müssen zusätzliche Ereignisse verarbeitet werden
+        // Additional events must be processed when terminating the connection
         connectExitExt(userDisconnect);
     }
 
@@ -181,7 +181,7 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
             screenHeight = savedInstanceState.getInt("screenHeight");
             screenWidth = savedInstanceState.getInt("screenWidth");
         }
-        // Ermitteln, ob der Bildschirm im Quer- oder Hochformat angezeigt wird
+        // Determine whether the screen is displayed in landscape or portrait format
         landscape = getApplication().getResources().getConfiguration().orientation
                 != Configuration.ORIENTATION_PORTRAIT;
         if (first_time) {
@@ -198,9 +198,9 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
         if (savedInstanceState != null) {
             Log.i("Scrcpy", "outState: " + savedInstanceState.getBoolean("from_save_instance"));
         }
-        // Aus dem gelöschten Zustand wiederherstellen
+        // Restore from saved state
         if (savedInstanceState == null || !savedInstanceState.getBoolean("from_save_instance", false)) {
-            // Beim ersten Aufrufen der App
+            // When the app is opened for the first time
             if (getIntent() != null && getIntent().getExtras() != null) {
                 headlessMode = getIntent().getExtras().getBoolean(START_REMOTE, headlessMode);
             }
@@ -225,9 +225,10 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
         outState.putBoolean("first_time", first_time);
         outState.putBoolean("landscape", landscape);
         outState.putBoolean("headlessMode", headlessMode);
-        // Beim zweiten Aufruf wird die Absicht zurückgesetzt, daher muss der Status gespeichert werden
-        // Das Umschalten zwischen dem kleinen-Fenster-Modus und dem Halbbildschirm-Modus verhindert, dass das Gerät in den Quer- oder Hochformatmodus zurückkehrt,
-        // was zu einem schwarzen Bildschirm führen würde (da die von scrcpy wiederhergestellte Verbindung nur einmal hergestellt werden darf).
+        // On the second call, the intent is reset, so the status must be saved.
+        // Switching between small-window mode and half-screen mode prevents the device 
+        // from returning to landscape or portrait mode, which would lead to a black screen 
+        // (since the connection restored by scrcpy may only be established once).
         // outState.putBoolean("resumeScrcpy", resumeScrcpy);
         outState.putInt("screenHeight", screenHeight);
         outState.putInt("screenWidth", screenWidth);
@@ -242,9 +243,9 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
         }
         final View decorView = getWindow().getDecorView();
         decorView.setSystemUiVisibility(View.VISIBLE);
-        // Erlaube dem System, die Orientierung basierend auf den Sensoren zu wählen
+        // Allow the system to choose the orientation based on sensors
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER);
-        // Setze den landscape-Status basierend auf der aktuellen Konfiguration
+        // Set landscape status based on current configuration
         landscape = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
         setContentView(R.layout.activity_main);
         final Button startButton = findViewById(R.id.button_start);
@@ -272,7 +273,7 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
             showListPopulWindow(editText);
         });
 
-        // Im „Headless“-Modus müssen eigentlich alle Steuerelemente ausgeblendet werden, da sonst die IP-Adresse angezeigt wird.
+        // In "headless" mode, all controls should actually be hidden, otherwise the IP address will be displayed.
         if (headlessMode) {
             View scrollView = findViewById(R.id.main_scroll_view);
             if (scrollView != null) {
@@ -282,19 +283,19 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
     }
 
     private void showListPopulWindow(EditText mEditText) {
-        String[] list = getHistoryList();//Einzugebende Daten
-        if (list.length == 0) {  // Wenn die Liste leer ist, wird sie mit einem Element aus dem lokalen Speicher gefüllt.
+        String[] list = getHistoryList(); // Data to be entered
+        if (list.length == 0) {  // If the list is empty, it is filled with an element from local storage.
             list = new String[]{"127.0.0.1"};
         }
         final ListPopupWindow listPopupWindow;
         listPopupWindow = new ListPopupWindow(this);
-        listPopupWindow.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, list));// Verwenden Sie die in Android integrierten Layouts oder entwerfen Sie eigene Designs
-        listPopupWindow.setAnchorView(mEditText);// Welches Steuerelement soll als Referenz dienen? In diesem Fall dient mEditText als Referenz.
+        listPopupWindow.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, list)); // Use built-in Android layouts or design your own
+        listPopupWindow.setAnchorView(mEditText); // Which control should serve as a reference?
         listPopupWindow.setModal(true);
         listPopupWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 
         String[] finalList = list;
-        listPopupWindow.setOnItemClickListener(new AdapterView.OnItemClickListener() {//设置项点击监听
+        listPopupWindow.setOnItemClickListener(new AdapterView.OnItemClickListener() { // Set item click listener
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 mEditText.setText(finalList[i]);
@@ -363,11 +364,11 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
 
     @SuppressLint("ClickableViewAccessibility")
     public void set_display_nd_touch() {
-        // Aktuelle Größe des Containers abrufen
+        // Get current size of the container
         float this_dev_height = linearLayout.getHeight();
         float this_dev_width = linearLayout.getWidth();
 
-        // Falls die View noch nicht gezeichnet wurde, Bildschirmmetriken als Fallback nutzen
+        // Use screen metrics as fallback if the view has not been drawn yet
         if (this_dev_height <= 0 || this_dev_width <= 0) {
             DisplayMetrics metrics = new DisplayMetrics();
             getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
@@ -375,7 +376,7 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
             this_dev_width = metrics.widthPixels;
         }
 
-        // Korrektur für Navigationsleiste, falls aktiv
+        // Correction for navigation bar if active
         if (PreUtils.get(context, Constant.CONTROL_NAV, false) &&
                 !PreUtils.get(context, Constant.CONTROL_NO, false)) {
             if (landscape) {
@@ -394,16 +395,16 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
         float remote_aspect_ratio = remote_width / remote_height;
         float local_aspect_ratio = this_dev_width / this_dev_height;
 
-        // Zurücksetzen des Paddings
+        // Reset padding
         linearLayout.setPadding(0, 0, 0, 0);
 
         if (remote_aspect_ratio > local_aspect_ratio) {
-            // Remote-Gerät ist breiter als der lokale Bildschirm (relativ) -> Schwarze Balken oben/unten (Letterbox)
+            // Remote device is wider than the local screen (relative) -> Black bars top/bottom (letterbox)
             float wantHeight = this_dev_width / remote_aspect_ratio;
             int paddingY = (int) Math.max(0, (this_dev_height - wantHeight) / 2);
             linearLayout.setPadding(0, paddingY, 0, paddingY);
         } else {
-            // Remote-Gerät ist schmaler als der lokale Bildschirm (relativ) -> Schwarze Balken links/rechts (Pillarbox)
+            // Remote device is narrower than the local screen (relative) -> Black bars left/right (pillarbox)
             float wantWidth = this_dev_height * remote_aspect_ratio;
             int paddingX = (int) Math.max(0, (this_dev_width - wantWidth) / 2);
             linearLayout.setPadding(paddingX, 0, paddingX, 0);
@@ -512,11 +513,11 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
     }
 
     /**
-     * Verlauf der Geräteverbindungen speichern
+     * Save the history of device connections
      */
     private boolean saveHistory(String device) {
         if (headlessMode) {
-            // Im Headless-Modus werden keine Protokolle gespeichert
+            // No logs are saved in headless mode
             return false;
         }
         JSONArray historyJson = new JSONArray();
@@ -529,7 +530,7 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-            // 最多记录 30 个
+            // Record up to 30
             int count = Math.min(historyList.length, 30);
             for (int i = 0; i < count; i++) {
                 if (!historyList[i].equals(device)) {
@@ -554,7 +555,7 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
     @SuppressLint("ClickableViewAccessibility")
     private void start_screen_copy_magic() {
         setContentView(R.layout.surface);
-        // Orientierung beim Start der Übertragung fixieren
+        // Fix orientation when transmission starts
         if (landscape) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
         } else {
@@ -631,7 +632,7 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
             first_time = false;
         }
         try {
-            // Dies könnte zu einer doppelten Aufhebung der Verknüpfung führen, daher wird die Ausnahme abgefangen.
+            // This could lead to a double unbinding, so the exception is caught.
             unbindService(serviceConnection);
         } catch (Exception e) {
             e.printStackTrace();
@@ -706,7 +707,7 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
                             | View.SYSTEM_UI_FLAG_FULLSCREEN
                             | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
             if (serviceBound) {
-                // 黑屏无需修复， 因为只是自带的配置问题
+                // Black screen doesn't need to be fixed, because it's just a built-in configuration issue
                 linearLayout = findViewById(R.id.container1);
                 scrcpy.resume();
             }
@@ -714,7 +715,7 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
         if (resumeScrcpy && !result_of_Rotation && scrcpy != null) {
             scrcpy.resume();
         }
-        resumeScrcpy = false;  // 两处都要resumeScrcpy设置为false
+        resumeScrcpy = false;  // Set resumeScrcpy to false in both places
         result_of_Rotation = false;
     }
 
@@ -747,13 +748,14 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
         if (sensorEvent.sensor.getType() == Sensor.TYPE_PROXIMITY) {
             if (sensorEvent.values[0] == 0) {
                 if (serviceBound) {
-                    // 该事件会使远程手机 按下电源键，触发方式：按住距离传感器，然后点击屏幕即可锁屏
-                    // 发送横竖屏会导致抬起事件无效
+                    // This event will cause the remote phone to press the power button, 
+                    // triggered by holding the proximity sensor and clicking the screen to lock.
+                    // Sending landscape/portrait will cause the release event to be invalid
                     // scrcpy.sendKeyevent(28);
                 }
             } else {
                 if (serviceBound) {
-                    // 发送横竖屏会导致抬起事件无效
+                    // Sending landscape/portrait will cause the release event to be invalid
                     // scrcpy.sendKeyevent(29);
                 }
             }
@@ -767,7 +769,7 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
 
     private void connectScrcpyServer(String serverAdr) {
         if (!TextUtils.isEmpty(serverAdr)) {
-            saveHistory(serverAdr);  // 保存到历史记录
+            saveHistory(serverAdr);  // Save to history
             String[] serverInfo = Util.getServerHostAndPort(serverAdr);
             String serverHost = serverInfo[0];
             int serverPort = Integer.parseInt(serverInfo[1]);
@@ -784,7 +786,7 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
                 if (sendStatus == SendCommands.CmdStatus.SUCCESS) {
                     ThreadUtils.post(() -> {
                         if (!MainActivity.this.isFinishing()) {
-                            // 进入主线程
+                            // Enter the main thread
                             Log.e("Scrcpy: ", "from startButton");
                             start_screen_copy_magic();
                         }
@@ -802,7 +804,7 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
     }
 
     /**
-     * 连接成功了，而且成功的显示了画面出来
+     * Connection successful, and the screen is displayed successfully
      */
     protected void connectSuccessExt() {
         Dialog.closeDialogs();
@@ -813,29 +815,30 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
     }
 
     /**
-     * 连接失败的额外处理
+     * Additional handling for failed connection
      */
     protected void connectExitExt(boolean userDisconnect) {
-        if (!userDisconnect) {  // userDisconnect : 用户主动断开连接
-            // 如果自动断开了端口连接，在系统恢复时，重启adb，避免
-            // 警告！！！ 重启将会导致 adb 配对过程失效，从而无法连接新设备，需要更智能的重启机制
+        if (!userDisconnect) {  // userDisconnect: User actively disconnected
+            // If the port connection is automatically disconnected, restart adb when the system recovers, to avoid...
+            // Warning!!! Restarting will cause the adb pairing process to fail, so new devices cannot be connected; 
+            // a smarter restart mechanism is needed.
             // AdbHelper.restartAdb();
         }
         if (headlessMode && !resumeScrcpy && !result_of_Rotation) {
             if (!userDisconnect) {
                 Dialog.displayDialog(this, getString(R.string.connect_faild),
                         getString(R.string.connect_faild_ask), () -> {
-                            // 重试连接
+                            // Retry connection
                             connectScrcpyServer(PreUtils.get(context, Constant.CONTROL_REMOTE_ADDR, ""));
                         }, () -> {
-                            // 取消重试
+                            // Cancel retry
                             finishAndRemoveTask();
                         });
             } else {
                 finishAndRemoveTask();
             }
         }
-//        Log.i("Scrcpy", "headlessMode： " + headlessMode +
+//        Log.i("Scrcpy", "headlessMode: " + headlessMode +
 //                " ,resumeScrcpy: " + resumeScrcpy + " ,result_of_Rotation: " + result_of_Rotation);
     }
 
