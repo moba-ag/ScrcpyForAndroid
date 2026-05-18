@@ -242,8 +242,10 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
         }
         final View decorView = getWindow().getDecorView();
         decorView.setSystemUiVisibility(View.VISIBLE);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        landscape = false;  // Den Modus wieder auf Hochformat zurücksetzen; ein falscher Modus führt zu einem schwarzen Bildschirm
+        // Erlaube dem System, die Orientierung basierend auf den Sensoren zu wählen
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER);
+        // Setze den landscape-Status basierend auf der aktuellen Konfiguration
+        landscape = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
         setContentView(R.layout.activity_main);
         final Button startButton = findViewById(R.id.button_start);
 //        final Button floatButton = findViewById(R.id.button_start_float);
@@ -361,57 +363,53 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
 
     @SuppressLint("ClickableViewAccessibility")
     public void set_display_nd_touch() {
-        DisplayMetrics metrics = new DisplayMetrics();
-        if (ViewConfiguration.get(context).hasPermanentMenuKey()) {
-            getWindowManager().getDefaultDisplay().getMetrics(metrics);
-        } else {
-            final Display display = getWindowManager().getDefaultDisplay();
-            display.getRealMetrics(metrics);
-        }
-//        float this_dev_height = metrics.heightPixels;
-//        float this_dev_width = metrics.widthPixels;
-
+        // Aktuelle Größe des Containers abrufen
         float this_dev_height = linearLayout.getHeight();
         float this_dev_width = linearLayout.getWidth();
+
+        // Falls die View noch nicht gezeichnet wurde, Bildschirmmetriken als Fallback nutzen
+        if (this_dev_height <= 0 || this_dev_width <= 0) {
+            DisplayMetrics metrics = new DisplayMetrics();
+            getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
+            this_dev_height = metrics.heightPixels;
+            this_dev_width = metrics.widthPixels;
+        }
+
+        // Korrektur für Navigationsleiste, falls aktiv
         if (PreUtils.get(context, Constant.CONTROL_NAV, false) &&
                 !PreUtils.get(context, Constant.CONTROL_NO, false)) {
             if (landscape) {
                 this_dev_width = this_dev_width - 96;
-            } else {                                                 //100 is the height of nav bar but need multiples of 8.
+            } else {
                 this_dev_height = this_dev_height - 96;
             }
         }
+
         int[] rem_res = scrcpy.get_remote_device_resolution();
-        int remote_device_height = rem_res[1];
-        int remote_device_width = rem_res[0];
-        float remote_device_aspect_ratio = (float) remote_device_height / remote_device_width;
+        float remote_width = rem_res[0];
+        float remote_height = rem_res[1];
 
-        if (!landscape) {                                                            //Portrait
-            float this_device_aspect_ratio = this_dev_height / this_dev_width;
-//            Log.d("fuck", "set_display_nd_touch: "+this_device_aspect_ratio);
-            if (remote_device_aspect_ratio > this_device_aspect_ratio) {
-                //TODO
-                float wantWidth = this_dev_height / remote_device_aspect_ratio;
-                int padding = (int) (this_dev_width - wantWidth) / 2;
-                linearLayout.setPadding(padding, 0, padding, 0);
-            } else if (remote_device_aspect_ratio < this_device_aspect_ratio) {
-                linearLayout.setPadding(0, (int) (((this_device_aspect_ratio - remote_device_aspect_ratio) * this_dev_width)), 0, 0);
-            }
+        if (remote_width <= 0 || remote_height <= 0) return;
 
-        } else {                                                                        //Landscape
-            float this_device_aspect_ratio = this_dev_width / this_dev_height;
-//            Log.d("fuck", "set_display_nd_touch_land: "+this_device_aspect_ratio);
-            if (remote_device_aspect_ratio > this_device_aspect_ratio) {
-                float wantHeight = this_dev_width / remote_device_aspect_ratio;
-                int padding = (int) (this_dev_height - wantHeight) / 2;
-                linearLayout.setPadding(0, padding, 0, padding);
-            } else if (remote_device_aspect_ratio < this_device_aspect_ratio) {
-                linearLayout.setPadding(((int) (((this_device_aspect_ratio - remote_device_aspect_ratio) * this_dev_height)) / 2), 0, ((int) (((this_device_aspect_ratio - remote_device_aspect_ratio) * this_dev_height)) / 2), 0);
-            }
+        float remote_aspect_ratio = remote_width / remote_height;
+        float local_aspect_ratio = this_dev_width / this_dev_height;
 
+        // Zurücksetzen des Paddings
+        linearLayout.setPadding(0, 0, 0, 0);
+
+        if (remote_aspect_ratio > local_aspect_ratio) {
+            // Remote-Gerät ist breiter als der lokale Bildschirm (relativ) -> Schwarze Balken oben/unten (Letterbox)
+            float wantHeight = this_dev_width / remote_aspect_ratio;
+            int paddingY = (int) Math.max(0, (this_dev_height - wantHeight) / 2);
+            linearLayout.setPadding(0, paddingY, 0, paddingY);
+        } else {
+            // Remote-Gerät ist schmaler als der lokale Bildschirm (relativ) -> Schwarze Balken links/rechts (Pillarbox)
+            float wantWidth = this_dev_height * remote_aspect_ratio;
+            int paddingX = (int) Math.max(0, (this_dev_width - wantWidth) / 2);
+            linearLayout.setPadding(paddingX, 0, paddingX, 0);
         }
+
         if (!PreUtils.get(context, Constant.CONTROL_NO, false)) {
-            // Log.i("Screen", "setOnTouchListener: " + surfaceView.getWidth() + "x" + surfaceView.getHeight());
             surfaceView.setOnTouchListener((view, event) -> scrcpy.touchevent(event, landscape, surfaceView.getWidth(), surfaceView.getHeight()));
         }
 
@@ -479,8 +477,18 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
         PreUtils.put(context, Constant.CONTROL_NAV, nav);
 
         final String[] videoResolutions = getResources().getStringArray(R.array.options_resolution_values)[videoResolutionSpinner.getSelectedItemPosition()].split("x");
-        screenHeight = Integer.parseInt(videoResolutions[0]);
-        screenWidth = Integer.parseInt(videoResolutions[1]);
+        int v0 = Integer.parseInt(videoResolutions[0]);
+        int v1 = Integer.parseInt(videoResolutions[1]);
+
+        // Sicherstellen, dass screenHeight und screenWidth zur aktuellen landscape-Einstellung passen
+        if (landscape) {
+            screenWidth = Math.max(v0, v1);
+            screenHeight = Math.min(v0, v1);
+        } else {
+            screenHeight = Math.max(v0, v1);
+            screenWidth = Math.min(v0, v1);
+        }
+
         videoBitrate = getResources().getIntArray(R.array.options_bitrate_values)[videoBitrateSpinner.getSelectedItemPosition()];
         delayControl = getResources().getIntArray(R.array.options_delay_values)[delayControlSpinner.getSelectedItemPosition()];
     }
@@ -546,6 +554,12 @@ public class MainActivity extends Activity implements Scrcpy.ServiceCallbacks, S
     @SuppressLint("ClickableViewAccessibility")
     private void start_screen_copy_magic() {
         setContentView(R.layout.surface);
+        // Orientierung beim Start der Übertragung fixieren
+        if (landscape) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+        } else {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
+        }
         final View decorView = getWindow().getDecorView();
         decorView.setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE

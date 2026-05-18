@@ -73,6 +73,8 @@ public class Scrcpy extends Service {
         this.screenWidth = NewWidth;
         this.screenHeight = NewHeight;
         this.surface = NewSurface;
+        this.remote_dev_resolution[0] = NewWidth;
+        this.remote_dev_resolution[1] = NewHeight;
 
         videoDecoder.start();
         audioDecoder.start();
@@ -290,12 +292,6 @@ public class Scrcpy extends Service {
                             (((int) (buf[i * 4 + 2]) << 8) & 0xFF00) |
                             ((int) (buf[i * 4 + 3]) & 0xFF);
                 }
-                if (remote_dev_resolution[0] > remote_dev_resolution[1]) {
-                    first_time = false;
-                    int i = remote_dev_resolution[0];
-                    remote_dev_resolution[0] = remote_dev_resolution[1];
-                    remote_dev_resolution[1] = i;
-                }
 
                 socketInputStream = dataInputStream;
                 socketOutputStream = dataOutputStream;
@@ -438,7 +434,8 @@ public class Scrcpy extends Service {
                             }
                             updateAvailable.set(false);
                             if (streamSettings != null) {
-                                videoDecoder.configure(surface, screenWidth, screenHeight, streamSettings.sps, streamSettings.pps);
+                                videoDecoder.configure(surface, remote_dev_resolution[0], remote_dev_resolution[1], streamSettings.sps, streamSettings.pps);
+                                first_time = false;
                             }
                         } else if (videoPacket.flag == VideoPacket.Flag.END) {
                             // need close stream
