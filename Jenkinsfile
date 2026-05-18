@@ -23,8 +23,10 @@ pipeline
         {
             steps 
             {
-                deleteDir()
-                checkout([$class: 'GitSCM', branches: [[name: '*/main']], extensions: [], gitTool: 'Default', userRemoteConfigs: [[url: 'git@github.com:moba-ag/ScrcpyForAndroid.git']]])
+                withCredentials([usernamePassword(credentialsId: 'moba-github-packages-token-readonly', passwordVariable: 'GITHUB_TOKEN', usernameVariable: 'GITHUB_USER')]) 
+                {
+                    checkout([$class: 'GitSCM', branches: [[name: '*/main']], extensions: [], gitTool: 'Default', userRemoteConfigs: [[url: 'git@github.com:moba-ag/ScrcpyForAndroid.git']]])
+                }
             }
         }
         stage('Compile')
